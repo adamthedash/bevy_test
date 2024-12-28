@@ -1,57 +1,41 @@
-use std::fmt::Display;
+use crate::grid::Grid;
+use crate::render::DisplayMesh;
+use std::default::Default;
 
-use bevy::prelude::Resource;
-
-use crate::entities::DisplayGlyph;
-
-#[derive(Resource)]
-pub struct Grid<T> {
-    pub size: (usize, usize), // (height, width)
-    data: Vec<T>,
+pub enum Block {
+    Floor,
+    Wall,
 }
 
-impl<T: Default> Grid<T> {
-    pub fn new(size: (usize, usize)) -> Self {
-        Self {
-            size,
-            data: (0..size.0 * size.1).map(|_| T::default()).collect(),
+impl Default for Block {
+    fn default() -> Self {
+        Self::Floor
+    }
+}
+
+impl DisplayMesh for Block {
+    fn mesh_key(&self) -> &str {
+        match self {
+            Block::Floor => "entity_floor",
+            Block::Wall => "entity_wall",
         }
     }
 }
 
-impl<T> Grid<T> {
-    pub fn get(&self, pos: (usize, usize)) -> &T {
-        assert!(
-            pos.0 < self.size.0 && pos.1 < self.size.1,
-            "Position is out of bounds: pos {:?}, world {:?}",
-            pos,
-            self.size
-        );
+pub type World = Grid<Block>;
 
-        let index = pos.0 * self.size.0 + pos.1;
+impl World {
+    pub fn arena(size: (usize, usize)) -> Self {
+        let mut world = Self::new(size);
+        (0..world.size.0).for_each(|i| {
+            *world.get_mut((i, 0)) = Block::Wall;
+            *world.get_mut((i, world.size.1 - 1)) = Block::Wall;
+        });
+        (0..world.size.1).for_each(|j| {
+            *world.get_mut((0, j)) = Block::Wall;
+            *world.get_mut((world.size.1 - 1, j)) = Block::Wall;
+        });
 
-        &self.data[index]
-    }
-
-    pub fn get_mut(&mut self, pos: (usize, usize)) -> &mut T {
-        assert!(
-            pos.0 < self.size.0 && pos.1 < self.size.1,
-            "Position is out of bounds: pos {:?}, world {:?}",
-            pos,
-            self.size
-        );
-
-        let index = pos.0 * self.size.0 + pos.1;
-
-        &mut self.data[index]
-    }
-}
-
-impl<T: DisplayGlyph> Display for Grid<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.data.chunks_exact(self.size.0).try_for_each(|row| {
-            let row = row.iter().map(DisplayGlyph::glyph).collect::<String>();
-            writeln!(f, "{}", row)
-        })
+        world
     }
 }

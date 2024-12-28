@@ -51,6 +51,7 @@ impl DerefMut for MaterialStore {
     }
 }
 
+/// Load all the assets used to draw the world
 pub fn load_entity_meshes(
     mut meshes: ResMut<Assets<Mesh>>,
     mut mesh_store: ResMut<MeshStore>,
